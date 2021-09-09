@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from pytorch_pretrained_bert.modeling import BertModel
 
-#from models.image import ImageEncoder
+from models.image import ImageEncoder
 
 
 class ImageBertEmbeddings(nn.Module):
@@ -51,7 +51,7 @@ class MultimodalBertEncoder(nn.Module):
         self.txt_embeddings = bert.embeddings
 
         self.img_embeddings = ImageBertEmbeddings(args, self.txt_embeddings)
-        #self.img_encoder = ImageEncoder(args)
+        self.img_encoder = ImageEncoder(args)
         self.encoder = bert.encoder
         self.pooler = bert.pooler
         self.clf = nn.Linear(args.hidden_sz, args.n_classes)
@@ -76,8 +76,8 @@ class MultimodalBertEncoder(nn.Module):
             .fill_(0)
             .cuda()
         )
-        #img = self.img_encoder(input_img)  # BxNx3x224x224 -> BxNx2048  
-        img =input_img #BxNx4096
+        img = self.img_encoder(input_img)  # BxNx3x224x224 -> BxNx2048  
+        #img =input_img #BxNx4096
         img_embed_out = self.img_embeddings(img, img_tok)
         txt_embed_out = self.txt_embeddings(input_txt, segment)
         encoder_input = torch.cat([img_embed_out, txt_embed_out], 1)  # Bx(TEXT+IMG)xHID
