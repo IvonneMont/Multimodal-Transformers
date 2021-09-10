@@ -182,7 +182,7 @@ def model_eval(i_epoch, data, model, args, criterion, store_preds=False):
     return metrics
 
 def model_forward(i_epoch, model, args, criterion, batch):
-    txt, segment, mask, img, audio, tgt= batch
+    txt, segment, mask, img, tgt= batch
     
     if args.model == "bert":
         txt, mask, segment = txt.cuda(), mask.cuda(), segment.cuda()
@@ -190,8 +190,7 @@ def model_forward(i_epoch, model, args, criterion, batch):
     if args.model == "mult":
         txt, mask, segment = txt.cuda(), mask.cuda(), segment.cuda()
         img= img.cuda()
-        audio=audio.cuda()
-        out =model(txt,mask,segment,img,audio)
+        out =model(txt,mask,segment,img)
     if args.model == "mmbt":
         txt, img = txt.cuda(), img.cuda()
         mask, segment = mask.cuda(), segment.cuda()

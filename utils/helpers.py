@@ -75,18 +75,18 @@ def collate_fn(batch, args):
     if args.model in ["mmbt","mult"]:
         img_tensor = torch.stack([row[2] for row in batch])
         
-    audio_tensor = None
-    if args.model in ["mult"]:
-        audio_lens = [row[3].shape[1] for row in batch]
-        audio_min_len = min(audio_lens)
-        audio_tensor = torch.stack([row[3][..., :audio_min_len] for row in batch])
+    # audio_tensor = None
+    # if args.model in ["mult"]:
+    #     audio_lens = [row[3].shape[1] for row in batch]
+    #     audio_min_len = min(audio_lens)
+    #     audio_tensor = torch.stack([row[3][..., :audio_min_len] for row in batch])
     
     if args.task_type == "multilabel":
         # Multilabel case
-        tgt_tensor = torch.stack([row[4] for row in batch])
+        tgt_tensor = torch.stack([row[3] for row in batch])
     else:
         # Single Label case
-        tgt_tensor = torch.cat([row[4] for row in batch]).long()
+        tgt_tensor = torch.cat([row[3] for row in batch]).long()
 
     for i_batch, (input_row, length) in enumerate(zip(batch, lens)):
         tokens, segment = input_row[:2]
@@ -94,7 +94,7 @@ def collate_fn(batch, args):
         segment_tensor[i_batch, :length] = segment
         mask_tensor[i_batch, :length] = 1
 
-    return text_tensor, segment_tensor, mask_tensor, img_tensor, audio_tensor, tgt_tensor
+    return text_tensor, segment_tensor, mask_tensor, img_tensor, tgt_tensor
 
 
 def get_data_loaders(args):

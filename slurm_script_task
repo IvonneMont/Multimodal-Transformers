@@ -37,7 +37,7 @@
 #SBATCH --time=0 
 
 # En la línea siguiente cambie la ruta del fichero de tareas
-Tasks=/home/est_posgrado_ivonne.monter/PT2021/MM_C/tasks_mmbt
+Tasks=/home/est_posgrado_ivonne.monter/Multimodal-Transformers/tasks_mmbt
 mpirun.openmpi -np ${SLURM_NTASKS} /opt/ClusterTools/MPI_Scheduler $Tasks  1 
 
 # Para enviarlo en la bash escriba sbatch nombreDeEsteFichero 

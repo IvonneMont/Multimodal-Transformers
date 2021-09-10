@@ -28,15 +28,10 @@ class JsonlDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, index):
-        
+    def moviescope(self,index):
+
         # Load text features
-        key_text=""
-        if self.args.task == "moviescope":
-            key_text="synopsis"
-        else:
-            key_text="text"
-        
+        key_text="synopsis"
         sentence = (
             self.text_start_token
             + self.tokenizer(self.data[index][key_text])[
@@ -51,6 +46,24 @@ class JsonlDataset(Dataset):
                 for w in sentence
             ]
         )
+
+        # Load poster
+        poster = None
+        poster= Image.open(
+                    os.path.join(self.data_dir,"MatchedPosters",f'{str(self.data[index]["id"])}.jpg')
+                ).convert("RGB")
+        poster = self.transforms(poster)
+
+        return sentence, segment, poster
+
+
+
+
+    def __getitem__(self, index):
+        
+        if self.args.task == "moviescope":
+            sentence, segment, image = self.moviescope(index)
+        
         # Process labels
         if self.args.task_type == "multilabel":
             label = torch.zeros(self.n_classes)
@@ -62,22 +75,6 @@ class JsonlDataset(Dataset):
                 [self.args.labels.index(self.data[index]["label"])]
             )
 
-        # Load visual features
-        image = None
-        if self.args.model in ["mmbt","mult"]:
-            if self.args.task == "moviescope":
-                file = open(os.path.join(self.data_dir, 'video_frames',
-                                         f'{str(self.data[index]["id"])}.pt'), 'rb')
-                image = torch.load(file).squeeze(0)
-            else:
-                if self.data[index]["img"]:
-                    image = Image.open(
-                        os.path.join(self.data_dir, self.data[index]["img"])
-                    ).convert("RGB")
-                else:
-                    image = Image.fromarray(128 * np.ones((256, 256, 3), dtype=np.uint8))
-                image = self.transforms(image)
-
         if self.args.model == "mmbt":
             # The first SEP is part of Image Token.
             segment = segment[1:]
@@ -85,11 +82,4 @@ class JsonlDataset(Dataset):
             # The first segment (0) is of images.
             segment += 1
             
-        # Load audio features
-        audio=None
-        if self.args.model in ["mult"]:
-            file = open(os.path.join(self.data_dir, 'spectrograms',
-                                         f'{str(self.data[index]["id"])}.pt'), 'rb')
-            audio = torch.load(file).squeeze(0)
-            
-        return sentence, segment, image, audio, label
+        return sentence, segment, image, label
