@@ -48,7 +48,7 @@ def get_glove_words(path):
 
 def get_vocab(args):
     vocab = Vocab()
-    if args.model in ["bert", "mmbt", "mult"]:
+    if args.model in ["bert", "mmbt", "mult","mult2"]:
         bert_tokenizer = BertTokenizer.from_pretrained(
             args.bert_model, do_lower_case=True
         )
@@ -72,14 +72,16 @@ def collate_fn(batch, args):
     segment_tensor = torch.zeros(bsz, max_seq_len).long()
 
     img_tensor = None
-    if args.model in ["mmbt","mult"]:
+    if args.model in ["mmbt","mult","mult2"]:
         img_tensor = torch.stack([row[2] for row in batch])
         
-    # audio_tensor = None
-    # if args.model in ["mult"]:
-    #     audio_lens = [row[3].shape[1] for row in batch]
-    #     audio_min_len = min(audio_lens)
-    #     audio_tensor = torch.stack([row[3][..., :audio_min_len] for row in batch])
+    '''
+    audio_tensor = None
+    if args.model in ["mult"]:
+        audio_lens = [row[3].shape[1] for row in batch]
+        audio_min_len = min(audio_lens)
+        audio_tensor = torch.stack([row[3][..., :audio_min_len] for row in batch])
+    '''
     
     if args.task_type == "multilabel":
         # Multilabel case
@@ -100,7 +102,7 @@ def collate_fn(batch, args):
 def get_data_loaders(args):
     tokenizer = (
         BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True).tokenize
-        if args.model in ["bert", "mmbt", "mult"]
+        if args.model in ["bert", "mmbt", "mult","mult2"]
         else str.split
     )
 

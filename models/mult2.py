@@ -459,7 +459,11 @@ class MULTModel2(nn.Module):
         super(MULTModel2, self).__init__()
         self.hyp_params=hyp_params
         self.orig_d_l, self.orig_d_v = hyp_params.orig_d_l, hyp_params.orig_d_v
+<<<<<<< HEAD
         self.d_l, self.d_v = 20, 20
+=======
+        self.d_l, self.d_v = 768, 768
+>>>>>>> main
         self.vonly = hyp_params.vonly
         self.lonly = hyp_params.lonly
         self.num_heads = hyp_params.num_heads
@@ -538,7 +542,11 @@ class MULTModel2(nn.Module):
         x_l = self.enc(txt,mask,segment)
         x_l = F.dropout(x_l.transpose(1, 2), p=self.embed_dropout,
                         training=self.training)
+<<<<<<< HEAD
         x_v = image
+=======
+        x_v = image.transpose(1, 2)
+>>>>>>> main
         
        
         # Project the textual/visual features

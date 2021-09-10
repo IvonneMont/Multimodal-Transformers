@@ -18,3 +18,6 @@ bin-release/
 # information for Eclipse / Flash Builder.
 data_sets/
 model_save/
+checkpoints/
+__pycache__/
+result.log

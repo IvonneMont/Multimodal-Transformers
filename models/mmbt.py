@@ -76,8 +76,15 @@ class MultimodalBertEncoder(nn.Module):
             .fill_(0)
             .cuda()
         )
+<<<<<<< HEAD
         img = self.img_encoder(input_img)  # BxNx3x224x224 -> BxNx2048  
         #img =input_img #BxNx4096
+=======
+        if self.args.modality== "ti":   #text+image
+            img = self.img_encoder(input_img)  # BxNx3x224x224 -> BxNx2048  
+        if self.args.modality== "tv": #text+video
+            img =input_img #BxNx4096
+>>>>>>> main
         img_embed_out = self.img_embeddings(img, img_tok)
         txt_embed_out = self.txt_embeddings(input_txt, segment)
         encoder_input = torch.cat([img_embed_out, txt_embed_out], 1)  # Bx(TEXT+IMG)xHID
