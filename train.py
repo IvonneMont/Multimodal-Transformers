@@ -14,40 +14,46 @@ from utils.utils import *
 
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1,2"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
+
+import sys
 
 def get_args(parser):
+    
+    #MMBT
     parser.add_argument("--batch_sz", type=int, default=128)
     parser.add_argument("--bert_model", type=str, default="bert-base-uncased", choices=["bert-base-uncased", "bert-large-uncased"])
     parser.add_argument("--data_path", type=str, default="/path/to/data_dir/")
     parser.add_argument("--drop_img_percent", type=float, default=0.0)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--embed_sz", type=int, default=300)
-    #parser.add_argument("--freeze_img", type=int, default=0)
-    #parser.add_argument("--freeze_txt", type=int, default=0)
+    parser.add_argument("--freeze_img", type=int, default=0)
+    parser.add_argument("--freeze_txt", type=int, default=0)
     parser.add_argument("--type", type=str, default="test",choices=["test","train"])
     parser.add_argument("--gradient_accumulation_steps", type=int, default=24)
     parser.add_argument("--hidden", nargs="*", type=int, default=[])
     parser.add_argument("--hidden_sz", type=int, default=768)
     parser.add_argument("--img_embed_pool_type", type=str, default="avg", choices=["max", "avg"])
-    parser.add_argument("--img_hidden_sz", type=int, default=4096)
+    parser.add_argument("--img_hidden_sz", type=int, default=2048)
     parser.add_argument("--include_bn", type=int, default=True)
-    parser.add_argument("--lr", type=float, default=0.5)
+    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--lr_factor", type=float, default=0.5)
     parser.add_argument("--lr_patience", type=int, default=2)
     parser.add_argument("--max_epochs", type=int, default=100)
     parser.add_argument("--max_seq_len", type=int, default=512)
-    parser.add_argument("--model", type=str, default="bert", choices=["bert","mmbt","mult"])
+    parser.add_argument("--model", type=str, default="bert", choices=["bert","mmbt","mult","mult2"])
     parser.add_argument("--n_workers", type=int, default=12)
     parser.add_argument("--name", type=str, default="nameless")
     parser.add_argument("--num_image_embeds", type=int, default=1)
     parser.add_argument("--patience", type=int, default=10)
     parser.add_argument("--savedir", type=str, default="/path/to/save_dir/")
     parser.add_argument("--seed", type=int, default=123)
-    parser.add_argument("--task", type=str, default="moviescope", choices=["moviescope"])
+    parser.add_argument("--task", type=str, default="moviescope", choices=["moviescope","mmimdb"])
     parser.add_argument("--task_type", type=str, default="multilabel", choices=["multilabel", "classification"])
     parser.add_argument("--warmup", type=float, default=0.1)
     parser.add_argument("--weight_classes", type=int, default=1)
+    parser.add_argument("--modality", type=str, default="t",choices=["t","tv","ti"])
+    #-------------------
     
     #MulT
     parser.add_argument('--vonly', action='store_false',
@@ -58,12 +64,17 @@ def get_args(parser):
                     help='use the crossmodal fusion into l (default: True)')
     parser.add_argument('--aligned', action='store_false',
                     help='consider aligned experiment or not (default: True)')
-    parser.add_argument('--orig_d_v',type=int, default=4096)
+    parser.add_argument('--orig_d_v',type=int, default=1024)
     parser.add_argument('--orig_d_l',type=int, default=768)
     parser.add_argument('--orig_d_a',type=int, default=96)
-    parser.add_argument('--v_len',type=int, default=200)
+    parser.add_argument('--v_len',type=int, default=256)
     parser.add_argument('--l_len',type=int, default=512)
     parser.add_argument('--a_len',type=int, default=200)
+     #-------------------
+        
+    #VQGAN+MUlT2
+    parser.add_argument("--vqgan_config", type=str, default="vqgan_imagenet_f16_1024.yaml")
+    parser.add_argument("--vqgan_checkpoint", type=str, default="vqgan_imagenet_f16_1024.ckpt")
     
     # Dropouts
     parser.add_argument('--attn_dropout', type=float, default=0.1,
@@ -80,6 +91,7 @@ def get_args(parser):
                     help='residual block dropout')
     parser.add_argument('--out_dropout', type=float, default=0.0,
                     help='output layer dropout')
+     #-------------------
     
     # Architecture
     parser.add_argument('--nlevels', type=int, default=1,
@@ -88,6 +100,7 @@ def get_args(parser):
                     help='number of heads for the transformer network (default: 5)')
     parser.add_argument('--attn_mask', action='store_false',
                     help='use attention mask for Transformer (default: true)')
+    #-------------------
 
     # Tuning
     parser.add_argument('--clip', type=float, default=0.8,
@@ -98,12 +111,14 @@ def get_args(parser):
                     help='when to decay learning rate (default: 20)')
     parser.add_argument('--batch_chunk', type=int, default=1,
                     help='number of chunks per batch (default: 1)')
+    #-------------------
 
     # Logistics
     parser.add_argument('--log_interval', type=int, default=30,
                     help='frequency of result logging (default: 30)')
     parser.add_argument('--no_cuda', action='store_true',
                     help='do not use cuda')
+     #-------------------
 
     
 def get_criterion(args):
@@ -182,7 +197,7 @@ def model_eval(i_epoch, data, model, args, criterion, store_preds=False):
     return metrics
 
 def model_forward(i_epoch, model, args, criterion, batch):
-    txt, segment, mask, img, audio, tgt= batch
+    txt, segment, mask, img, tgt= batch
     
     if args.model == "bert":
         txt, mask, segment = txt.cuda(), mask.cuda(), segment.cuda()
@@ -192,7 +207,7 @@ def model_forward(i_epoch, model, args, criterion, batch):
         img= img.cuda()
         audio=audio.cuda()
         out =model(txt,mask,segment,img,audio)
-    if args.model == "mmbt":
+    if args.model == "mmbt" or args.model == "mult2":
         txt, img = txt.cuda(), img.cuda()
         mask, segment = mask.cuda(), segment.cuda()
         out = model(txt, mask, segment, img)
