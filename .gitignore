@@ -19,4 +19,5 @@ bin-release/
 data_sets/
 model_save/
 checkpoints/
+models/weights.pt
 __pycache__/
